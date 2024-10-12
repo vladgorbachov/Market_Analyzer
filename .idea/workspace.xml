@@ -4,37 +4,32 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="564b0ac3-3474-4246-94c8-208b67dc2469" name="Changes" comment="v 0.0.1 building up">
-      <change afterPath="$PROJECT_DIR$/src/feature_engineering/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/feature_engineering/technical_indicators.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/feature_engineering/text_features.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/arima_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/lstm_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/model_selector.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/prophet_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/random_forest_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/models/xgboost_model.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/trading/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/trading/signal_generator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_data_harmonization.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_model_selector.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_signal_generator.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/tests/test_technical_indicators.py" afterDir="false" />
+    <list default="true" id="564b0ac3-3474-4246-94c8-208b67dc2469" name="Changes" comment="v 0.0.1 Add front-end structure">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CHANGELOG.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_collection/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_processing/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/src/evaluation/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/src/evaluation/model_evaluation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/notebooks/01_initial_data_exploration.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_api_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_collection/api_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_collection/api_manager.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_collection/binance_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_collection/binance_api.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_collection/coinmarketcap_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_collection/coinmarketcap_api.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_collection/okx_api.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_collection/okx_api.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/data_processing/data_harmonization.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data_processing/data_harmonization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/evaluation/model_evaluation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/evaluation/model_evaluation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/feature_engineering/technical_indicators.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/feature_engineering/technical_indicators.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/feature_engineering/text_features.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/feature_engineering/text_features.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/arima_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/arima_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/lstm_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/lstm_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/model_selector.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/model_selector.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/prophet_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/prophet_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/random_forest_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/random_forest_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/models/xgboost_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/models/xgboost_model.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/trading/signal_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/trading/signal_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/static/images" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/conftest.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/conftest.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_data_harmonization.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_data_harmonization.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_model_selector.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_model_selector.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_signal_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_signal_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/test_technical_indicators.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_technical_indicators.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -74,16 +69,16 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
-    "Python.main.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/volod/PycharmProjects/Market_Analyzer",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/volod/PycharmProjects/Market_Analyzer&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -108,7 +103,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723593770927</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="v 0.0.1 Add front-end structure">
+      <option name="closed" value="true" />
+      <created>1728649995957</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1728649995957</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -124,6 +127,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="v 0.0.1 building up" />
-    <option name="LAST_COMMIT_MESSAGE" value="v 0.0.1 building up" />
+    <MESSAGE value="v 0.0.1 Add front-end structure" />
+    <option name="LAST_COMMIT_MESSAGE" value="v 0.0.1 Add front-end structure" />
   </component>
 </project>

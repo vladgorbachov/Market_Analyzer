@@ -1,5 +1,9 @@
+# main.py
+
 import os
 from dotenv import load_dotenv
+import pandas as pd
+import numpy as np
 from src.data_collection.api_manager import APIManager
 from src.data_processing.data_harmonization import harmonize_price_data, harmonize_historical_data
 from src.feature_engineering.technical_indicators import add_all_indicators
@@ -7,94 +11,169 @@ from src.feature_engineering.text_features import add_text_features
 from src.models.model_selector import ModelSelector
 from src.evaluation.model_evaluation import ModelEvaluator
 from src.trading.signal_generator import SignalGenerator
-import warnings
+import logging
 import time
-import pandas as pd
+from typing import List, Dict, Any
 
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="google._upb._message")
+# Настройка логирования
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+def load_environment_variables():
+    """Загрузка переменных окружения"""
+    load_dotenv()
+    logger.info("Environment variables loaded")
+
+
+def initialize_components() -> Dict[str, Any]:
+    """Инициализация основных компонентов"""
+    try:
+        api_manager = APIManager()
+        model_selector = ModelSelector()
+        model_evaluator = ModelEvaluator(model_selector)
+        signal_generator = SignalGenerator()
+
+        return {
+            'api_manager': api_manager,
+            'model_selector': model_selector,
+            'model_evaluator': model_evaluator,
+            'signal_generator': signal_generator
+        }
+    except Exception as e:
+        logger.error(f"Error initializing components: {str(e)}")
+        raise
+
+
+def fetch_data(api_manager: APIManager, symbol: str) -> Dict[str, Any]:
+    """Получение данных через API"""
+    try:
+        logger.info(f"Fetching data for symbol: {symbol}")
+        price_data = api_manager.get_price_data(symbol)
+        start_time = int(time.time() * 1000) - (1000 * 60 * 60 * 24 * 30)  # 30 дней назад
+        end_time = int(time.time() * 1000)
+        historical_data = api_manager.get_historical_data(symbol, interval="1h", start_time=start_time,
+                                                          end_time=end_time)
+        market_overview = api_manager.get_market_overview(limit=10)
+
+        return {
+            'price_data': price_data,
+            'historical_data': historical_data,
+            'market_overview': market_overview
+        }
+    except Exception as e:
+        logger.error(f"Error fetching data: {str(e)}")
+        raise
+
+
+def process_data(data: Dict[str, Any]) -> pd.DataFrame:
+    """Обработка и подготовка данных"""
+    try:
+        logger.info("Processing and preparing data")
+        harmonized_price_data = harmonize_price_data(data['price_data'])
+        harmonized_historical_data = harmonize_historical_data(data['historical_data'])
+
+        data_with_indicators = add_all_indicators(harmonized_historical_data)
+
+        market_overview_df = pd.DataFrame(data['market_overview'].get('data', []))
+        if 'description' in market_overview_df.columns:
+            data_with_features = add_text_features(data_with_indicators, 'description')
+        else:
+            data_with_features = data_with_indicators
+
+        return data_with_features
+    except Exception as e:
+        logger.error(f"Error processing data: {str(e)}")
+        raise
+
+
+def train_and_evaluate_model(model_selector: ModelSelector, model_evaluator: ModelEvaluator,
+                             data: pd.DataFrame, target_column: str, feature_columns: List[str]) -> Dict[str, Any]:
+    """Обучение и оценка модели"""
+    try:
+        logger.info("Training and evaluating model")
+        model_selector.fit(data, target_column, feature_columns)
+        evaluation_results = model_evaluator.run_full_evaluation(data, target_column, feature_columns)
+        return evaluation_results
+    except Exception as e:
+        logger.error(f"Error training and evaluating model: {str(e)}")
+        raise
+
+
+def generate_trading_signals(signal_generator: SignalGenerator, data: pd.DataFrame,
+                             model_selector: ModelSelector, feature_columns: List[str]) -> pd.Series:
+    """Генерация торговых сигналов"""
+    try:
+        logger.info("Generating trading signals")
+        signal_generator.add_strategy('trend_following', SignalGenerator.trend_following_strategy)
+        signal_generator.add_strategy('mean_reversion', SignalGenerator.mean_reversion_strategy)
+        signal_generator.add_strategy('rsi', SignalGenerator.rsi_strategy)
+
+        trend_following_signals = signal_generator.generate_signals(data, 'trend_following')
+        mean_reversion_signals = signal_generator.generate_signals(data, 'mean_reversion')
+        rsi_signals = signal_generator.generate_signals(data, 'rsi')
+
+        predictions = model_selector.predict(data[feature_columns])
+        ml_model_signals = SignalGenerator.ml_model_strategy(data, predictions)
+
+        combined_signals = signal_generator.combine_signals(
+            [trend_following_signals, mean_reversion_signals, rsi_signals, ml_model_signals],
+            method='majority'
+        )
+        return combined_signals
+    except Exception as e:
+        logger.error(f"Error generating trading signals: {str(e)}")
+        raise
+
+
+def backtest_signals(signal_generator: SignalGenerator, data: pd.DataFrame, signals: pd.Series) -> Dict[str, float]:
+    """Проведение бэктестинга сигналов"""
+    try:
+        logger.info("Backtesting signals")
+        return signal_generator.backtest_signals(data, signals)
+    except Exception as e:
+        logger.error(f"Error backtesting signals: {str(e)}")
+        raise
+
 
 def main():
-    # Загрузка переменных окружения
-    load_dotenv()
+    try:
+        load_environment_variables()
+        components = initialize_components()
 
-    # Инициализация компонентов
-    api_manager = APIManager()
-    model_selector = ModelSelector()
-    model_evaluator = ModelEvaluator(model_selector)
-    signal_generator = SignalGenerator()
+        symbol = "BTCUSDT"
+        raw_data = fetch_data(components['api_manager'], symbol)
+        processed_data = process_data(raw_data)
 
-    # Получение данных
-    symbol = "BTCUSDT"
-    price_data = api_manager.get_price_data(symbol)
-    start_time = int(time.time() * 1000) - (1000 * 60 * 60 * 24)  # Например, 24 часа назад
-    end_time = int(time.time() * 1000)
-    historical_data = api_manager.get_historical_data(symbol, interval="1h", start_time=start_time, end_time=end_time)
-    market_overview = api_manager.get_market_overview(limit=10)
+        target_column = 'close'
+        feature_columns = [col for col in processed_data.columns if
+                           col not in ['timestamp', 'open', 'high', 'low', 'close', 'volume']]
 
-    # Преобразование market_overview в DataFrame
-    market_overview_df = pd.DataFrame(market_overview.get('data', []))
+        evaluation_results = train_and_evaluate_model(components['model_selector'], components['model_evaluator'],
+                                                      processed_data, target_column, feature_columns)
 
-    # Обработка данных
-    harmonized_price_data = harmonize_price_data(price_data)
-    harmonized_historical_data = harmonize_historical_data(historical_data)
+        logger.info("Model Evaluation Results:")
+        logger.info(f"Overall Metrics: {evaluation_results['Overall Metrics']}")
+        logger.info(f"Trading Performance: {evaluation_results['Trading Performance']}")
 
-    # Извлечение признаков
-    data_with_indicators = add_all_indicators(harmonized_historical_data)
+        combined_signals = generate_trading_signals(components['signal_generator'], processed_data,
+                                                    components['model_selector'], feature_columns)
 
-    # Добавление текстовых признаков (если есть текстовые данные)
-    if 'description' in market_overview_df.columns:
-        data_with_features = add_text_features(data_with_indicators, 'description')
-    else:
-        data_with_features = data_with_indicators
+        backtest_results = backtest_signals(components['signal_generator'], processed_data, combined_signals)
+        logger.info("\nBacktest Results:")
+        for key, value in backtest_results.items():
+            logger.info(f"{key}: {value}")
 
-    # Подготовка данных для модели
-    target_column = 'close'
-    feature_columns = [col for col in data_with_features.columns if col not in ['timestamp', 'open', 'high', 'low', 'close', 'volume']]
+        latest_data = processed_data.iloc[-1:]
+        next_prediction = components['model_selector'].predict(latest_data[feature_columns])
+        logger.info(f"\nPredicted price for next period: {next_prediction[0]}")
 
-    # Обучение модели
-    model_selector.fit(data_with_features, target_column, feature_columns)
+        current_signal = combined_signals.iloc[-1]
+        logger.info(f"Current trading signal: {current_signal}")
 
-    # Оценка модели
-    evaluation_results = model_evaluator.run_full_evaluation(data_with_features, target_column, feature_columns)
-    print("Model Evaluation Results:")
-    print(f"Overall Metrics: {evaluation_results['Overall Metrics']}")
-    print(f"Trading Performance: {evaluation_results['Trading Performance']}")
+    except Exception as e:
+        logger.error(f"An error occurred in the main function: {str(e)}")
 
-    # Генерация торговых сигналов
-    # Добавляем стратегии в генератор сигналов
-    signal_generator.add_strategy('trend_following', SignalGenerator.trend_following_strategy)
-    signal_generator.add_strategy('mean_reversion', SignalGenerator.mean_reversion_strategy)
-    signal_generator.add_strategy('rsi', SignalGenerator.rsi_strategy)
-
-    # Генерация сигналов для каждой стратегии
-    trend_following_signals = signal_generator.generate_signals(data_with_features, 'trend_following')
-    mean_reversion_signals = signal_generator.generate_signals(data_with_features, 'mean_reversion')
-    rsi_signals = signal_generator.generate_signals(data_with_features, 'rsi')
-
-    # Сгенерированные модели предсказания
-    predictions = model_selector.predict(data_with_features[feature_columns])
-    ml_model_signals = SignalGenerator.ml_model_strategy(data_with_features, predictions)
-
-    # Объединение сигналов
-    combined_signals = signal_generator.combine_signals(
-        [trend_following_signals, mean_reversion_signals, rsi_signals, ml_model_signals],
-        method='majority'
-    )
-
-    # Бэктестинг сигналов
-    backtest_results = signal_generator.backtest_signals(data_with_features, combined_signals)
-    print("\nBacktest Results:")
-    for key, value in backtest_results.items():
-        print(f"{key}: {value}")
-
-    # Прогноз на следующий период
-    latest_data = data_with_features.iloc[-1:]
-    next_prediction = model_selector.predict(latest_data[feature_columns])
-    print(f"\nPredicted price for next period: {next_prediction[0]}")
-
-    # Генерация сигнала для текущего момента
-    current_signal = combined_signals.iloc[-1]
-    print(f"Current trading signal: {current_signal}")
 
 if __name__ == "__main__":
     main()
