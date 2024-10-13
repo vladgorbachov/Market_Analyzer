@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import LabelEncoder
 from typing import Dict, Any, List, Optional
 import logging
 from joblib import dump, load
@@ -34,6 +35,23 @@ class RandomForestModel:
             random_state=random_state
         )
         self.feature_names: Optional[List[str]] = None
+        self.label_encoders: Dict[str, LabelEncoder] = {}
+
+    def _encode_categorical(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Кодирование категориальных переменных.
+
+        :param X: DataFrame с признаками.
+        :return: DataFrame с закодированными признаками.
+        """
+        X_encoded = X.copy()
+        for column in X.select_dtypes(include=['object', 'category']).columns:
+            if column not in self.label_encoders:
+                self.label_encoders[column] = LabelEncoder()
+                X_encoded[column] = self.label_encoders[column].fit_transform(X[column])
+            else:
+                X_encoded[column] = self.label_encoders[column].transform(X[column])
+        return X_encoded
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
         """
@@ -45,7 +63,8 @@ class RandomForestModel:
         logger.info("Fitting Random Forest model")
         try:
             self.feature_names = X.columns.tolist()
-            self.model.fit(X, y)
+            X_encoded = self._encode_categorical(X)
+            self.model.fit(X_encoded, y)
             logger.info("Random Forest model fitted successfully")
         except Exception as e:
             logger.error(f"Error fitting Random Forest model: {str(e)}")
@@ -60,7 +79,8 @@ class RandomForestModel:
         """
         logger.info("Making predictions with Random Forest model")
         try:
-            return self.model.predict(X)
+            X_encoded = self._encode_categorical(X)
+            return self.model.predict(X_encoded)
         except Exception as e:
             logger.error(f"Error predicting with Random Forest model: {str(e)}")
             raise
@@ -119,8 +139,9 @@ class RandomForestModel:
         """
         logger.info("Performing grid search for Random Forest model")
         try:
+            X_encoded = self._encode_categorical(X)
             grid_search = GridSearchCV(self.model, param_grid, cv=cv, n_jobs=-1, verbose=1)
-            grid_search.fit(X, y)
+            grid_search.fit(X_encoded, y)
             self.model = grid_search.best_estimator_
             logger.info(f"Best parameters found: {grid_search.best_params_}")
             logger.info(f"Best score: {grid_search.best_score_}")
@@ -138,7 +159,8 @@ class RandomForestModel:
         try:
             model_data = {
                 'model': self.model,
-                'feature_names': self.feature_names
+                'feature_names': self.feature_names,
+                'label_encoders': self.label_encoders
             }
             dump(model_data, filepath)
             logger.info("Model saved successfully")
@@ -157,6 +179,7 @@ class RandomForestModel:
             model_data = load(filepath)
             self.model = model_data['model']
             self.feature_names = model_data['feature_names']
+            self.label_encoders = model_data['label_encoders']
             logger.info("Model loaded successfully")
         except Exception as e:
             logger.error(f"Error loading model: {str(e)}")
@@ -175,7 +198,8 @@ class RandomForestModel:
 
         logger.info(f"Generating partial dependence plot for features: {features}")
         try:
-            pdp = partial_dependence(self.model, X, features, grid_resolution=grid_resolution)
+            X_encoded = self._encode_categorical(X)
+            pdp = partial_dependence(self.model, X_encoded, features, grid_resolution=grid_resolution)
 
             fig, axes = plt.subplots(1, len(features), figsize=(5 * len(features), 5))
             if len(features) == 1:
@@ -193,4 +217,3 @@ class RandomForestModel:
         except Exception as e:
             logger.error(f"Error generating partial dependence plot: {str(e)}")
             raise
-

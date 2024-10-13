@@ -58,7 +58,7 @@ class ModelEvaluator:
         logger.info("Evaluating model on given dataset")
         try:
             y_pred = self.model_selector.predict(X)
-            return self.calculate_metrics(y, y_pred)
+            return self.calculate_metrics(y.values, y_pred)
         except Exception as e:
             logger.error(f"Error evaluating model: {str(e)}")
             raise
@@ -78,7 +78,7 @@ class ModelEvaluator:
         logger.info(f"Performing rolling window backtest with window size {window_size} and step size {step_size}")
         results = []
         try:
-            for i in range(0, len(data) - window_size, step_size):
+            for i in range(0, len(data) - window_size - step_size + 1, step_size):
                 train_data = data.iloc[i:i + window_size]
                 test_data = data.iloc[i + window_size:i + window_size + step_size]
 
@@ -88,7 +88,7 @@ class ModelEvaluator:
                 y_test = test_data[target_column]
                 y_pred = self.model_selector.predict(X_test)
 
-                metrics = self.calculate_metrics(y_test, y_pred)
+                metrics = self.calculate_metrics(y_test.values, y_pred)
                 metrics['start_date'] = test_data.index[0]
                 metrics['end_date'] = test_data.index[-1]
                 results.append(metrics)
@@ -130,6 +130,8 @@ class ModelEvaluator:
         logger.info("Calculating Sharpe ratio")
         try:
             excess_returns = returns - risk_free_rate
+            if excess_returns.std() == 0:
+                return 0
             return np.sqrt(252) * excess_returns.mean() / excess_returns.std()
         except Exception as e:
             logger.error(f"Error calculating Sharpe ratio: {str(e)}")
@@ -146,7 +148,7 @@ class ModelEvaluator:
         try:
             peak = cumulative_returns.max()
             trough = cumulative_returns[cumulative_returns.argmax():].min()
-            return (trough - peak) / peak
+            return (trough - peak) / peak if peak != 0 else 0
         except Exception as e:
             logger.error(f"Error calculating maximum drawdown: {str(e)}")
             raise
@@ -240,4 +242,3 @@ class ModelEvaluator:
         except Exception as e:
             logger.error(f"Error plotting predictions vs actual: {str(e)}")
             raise
-

@@ -14,10 +14,8 @@ from .xgboost_model import XGBoostModel
 from .lstm_model import LSTMModel
 from .random_forest_model import RandomForestModel
 
-# Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
 
 class ModelSelector:
     def __init__(self):
@@ -28,9 +26,7 @@ class ModelSelector:
             'RandomForest': RandomForestModel()
         }
         try:
-            lstm_model = LSTMModel()
-            if lstm_model.model is not None:
-                self.models['LSTM'] = lstm_model
+            self.models['LSTM'] = LSTMModel()
         except Exception as e:
             logger.warning(f"Failed to initialize LSTM model: {str(e)}")
 
@@ -90,7 +86,7 @@ class ModelSelector:
 
     def tune_best_model(self, X: pd.DataFrame, y: pd.Series, param_grid: Dict[str, Any]):
         if self.best_model_name in ['ARIMA', 'Prophet', 'LSTM']:
-            warnings.warn("Automatic tuning is not implemented for {self.best_model_name}. Please tune manually.", UserWarning)
+            warnings.warn(f"Automatic tuning is not implemented for {self.best_model_name}. Please tune manually.", UserWarning)
             return
 
         logger.info(f"Tuning hyperparameters for {self.best_model_name}")
@@ -123,7 +119,10 @@ class ModelSelector:
 
         logger.info(f"Making predictions using {self.best_model_name}")
         try:
-            return self.best_model.predict(X)
+            if self.best_model_name in ['ARIMA', 'Prophet']:
+                return self.best_model.predict(len(X))
+            else:
+                return self.best_model.predict(X)
         except Exception as e:
             logger.error(f"Error in making predictions: {str(e)}")
             raise
@@ -131,16 +130,10 @@ class ModelSelector:
     def get_feature_importance(self) -> pd.DataFrame:
         if self.best_model_name in ['XGBoost', 'RandomForest']:
             try:
-                importance = self.best_model.model.feature_importances_
-                feature_importance = pd.DataFrame({
-                    'feature': self.best_model.model.feature_names_in_,
-                    'importance': importance
-                })
-                return feature_importance.sort_values('importance', ascending=False)
+                return self.best_model.feature_importances()
             except Exception as e:
                 logger.error(f"Error in getting feature importance: {str(e)}")
                 return pd.DataFrame()
         else:
             logger.warning(f"Feature importance is not available for {self.best_model_name}")
             return pd.DataFrame()
-

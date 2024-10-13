@@ -48,7 +48,9 @@ class XGBoostModel:
         logger.info("Fitting XGBoost model")
         try:
             self.feature_names = X.columns.tolist()
-            self.model.fit(X, y)
+            # Преобразование категориальных переменных
+            X_encoded = pd.get_dummies(X, columns=X.select_dtypes(include=['object', 'category']).columns)
+            self.model.fit(X_encoded, y)
             logger.info("XGBoost model fitted successfully")
         except Exception as e:
             logger.error(f"Error fitting XGBoost model: {str(e)}")
@@ -63,7 +65,9 @@ class XGBoostModel:
         """
         logger.info("Making predictions with XGBoost model")
         try:
-            return self.model.predict(X)
+            # Преобразование категориальных переменных
+            X_encoded = pd.get_dummies(X, columns=X.select_dtypes(include=['object', 'category']).columns)
+            return self.model.predict(X_encoded)
         except Exception as e:
             logger.error(f"Error predicting with XGBoost model: {str(e)}")
             raise
@@ -122,8 +126,10 @@ class XGBoostModel:
         """
         logger.info("Performing grid search for XGBoost model")
         try:
+            # Преобразование категориальных переменных
+            X_encoded = pd.get_dummies(X, columns=X.select_dtypes(include=['object', 'category']).columns)
             grid_search = GridSearchCV(self.model, param_grid, cv=cv, n_jobs=-1, verbose=1)
-            grid_search.fit(X, y)
+            grid_search.fit(X_encoded, y)
             self.model = grid_search.best_estimator_
             logger.info(f"Best parameters found: {grid_search.best_params_}")
             logger.info(f"Best score: {grid_search.best_score_}")
@@ -203,8 +209,10 @@ class XGBoostModel:
 
         logger.info("Generating learning curve")
         try:
+            # Преобразование категориальных переменных
+            X_encoded = pd.get_dummies(X, columns=X.select_dtypes(include=['object', 'category']).columns)
             train_sizes, train_scores, test_scores = learning_curve(
-                self.model, X, y, cv=cv, n_jobs=-1, train_sizes=train_sizes)
+                self.model, X_encoded, y, cv=cv, n_jobs=-1, train_sizes=train_sizes)
 
             train_scores_mean = np.mean(train_scores, axis=1)
             train_scores_std = np.std(train_scores, axis=1)
@@ -230,4 +238,3 @@ class XGBoostModel:
         except Exception as e:
             logger.error(f"Error generating learning curve: {str(e)}")
             raise
-

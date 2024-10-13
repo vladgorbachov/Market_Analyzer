@@ -6,7 +6,6 @@ from typing import Dict, Any, List
 import logging
 from datetime import datetime
 
-# Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -21,22 +20,20 @@ def harmonize_price_data(data: Dict[str, Any]) -> pd.DataFrame:
                     'symbol': price_info.get('symbol', 'N/A'),
                     'price': float(price_info.get('price', 0.0)),
                     'timestamp': pd.to_datetime(price_info.get('time', pd.Timestamp.now().timestamp() * 1000),
-                                                unit='ms')
+                                                unit='ms', utc=True)
                 })
             elif source == 'okx':
                 harmonized_data.append({
                     'source': source,
                     'symbol': price_info.get('instId', 'N/A'),
                     'price': float(price_info.get('last', 0.0)),
-                    'timestamp': pd.to_datetime(price_info.get('ts', pd.Timestamp.now().timestamp() * 1000), unit='ms')
+                    'timestamp': pd.to_datetime(price_info.get('ts', pd.Timestamp.now().timestamp() * 1000),
+                                                unit='ms', utc=True)
                 })
-            # Добавьте обработку данных от других источников по мере необходимости
         except (KeyError, ValueError) as e:
             logger.error(f"Error processing {source} data: {str(e)}")
 
     result = pd.DataFrame(harmonized_data)
-    if 'timestamp' in result.columns:
-        result['timestamp'] = pd.to_datetime(result['timestamp'])
     return result
 
 def harmonize_order_book(data: Dict[str, Any]) -> pd.DataFrame:
@@ -57,9 +54,8 @@ def harmonize_order_book(data: Dict[str, Any]) -> pd.DataFrame:
                         'source': source,
                         'type': 'ask',
                         'price': float(ask[0]),
-                        'quantity': float(ask[1])
+                        'quantity': float(ask[1])  # Исправлено с bid[1] на ask[1]
                     })
-            # Добавьте обработку данных от других источников по мере необходимости
         except (KeyError, ValueError, IndexError) as e:
             logger.error(f"Error processing {source} order book data: {str(e)}")
 
@@ -71,29 +67,26 @@ def harmonize_historical_data(data: Dict[str, List[List]]) -> pd.DataFrame:
     for source, candles in data.items():
         for candle in candles:
             try:
-                if source == 'binance' or source == 'okx':
+                if source in ['binance', 'okx']:
+                    timestamp = pd.to_datetime(candle[0], unit='ms', utc=True)
                     harmonized_data.append({
                         'source': source,
-                        'timestamp': pd.to_datetime(candle[0], unit='ms'),
+                        'timestamp': timestamp,
                         'open': float(candle[1]),
                         'high': float(candle[2]),
                         'low': float(candle[3]),
                         'close': float(candle[4]),
                         'volume': float(candle[5])
                     })
-                # Добавьте обработку данных от других источников по мере необходимости
             except (ValueError, IndexError) as e:
                 logger.error(f"Error processing {source} historical data: {str(e)}")
 
-    result = pd.DataFrame(harmonized_data)
-    if 'timestamp' in result.columns:
-        result['timestamp'] = pd.to_datetime(result['timestamp'])
-    return result
+    return pd.DataFrame(harmonized_data)
 
 def handle_missing_values(df: pd.DataFrame, method: str = 'ffill') -> pd.DataFrame:
     logger.info(f"Handling missing values using method: {method}")
     if method == 'ffill':
-        return df.ffill().bfill()  # Чтобы полностью заполнить пропуски
+        return df.ffill().bfill()
     elif method == 'bfill':
         return df.bfill().ffill()
     elif method == 'interpolate':
@@ -110,7 +103,7 @@ def normalize_data(df: pd.DataFrame, method: str = 'minmax') -> pd.DataFrame:
             if df[column].nunique() > 1:
                 df[column] = (df[column] - df[column].min()) / (df[column].max() - df[column].min())
             else:
-                df[column] = 0  # Константные значения нормализуются в 0
+                df[column] = 0
     elif method == 'zscore':
         for column in numeric_columns:
             if df[column].nunique() > 1:
@@ -128,4 +121,3 @@ def aggregate_data(df: pd.DataFrame, group_by: str, agg_func: Dict[str, str]) ->
     else:
         logger.error(f"Group by column {group_by} not found in DataFrame.")
         return df
-

@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 import tensorflow as tf
 from typing import Tuple, Optional
 import logging
@@ -13,92 +13,70 @@ logger = logging.getLogger(__name__)
 
 
 class LSTMModel:
-    def __init__(self, units: int = 50, input_shape: Tuple[int, int] = None, epochs: int = 100, batch_size: int = 32):
-        """
-        Инициализация модели LSTM.
-
-        :param units: Количество нейронов в LSTM слоях.
-        :param input_shape: Форма входных данных (временные шаги, признаки).
-        :param epochs: Количество эпох для обучения.
-        :param batch_size: Размер батча для обучения.
-        """
+    def __init__(self, units: int = 50, input_shape: Optional[Tuple[int, int]] = None, epochs: int = 100, batch_size: int = 32):
         self.units = units
         self.input_shape = input_shape
         self.epochs = epochs
         self.batch_size = batch_size
         self.model = None
         self.scaler = MinMaxScaler()
-
-        if tf is not None:
-            try:
-                self._build_model()
-            except Exception as e:
-                logger.error(f"Error building LSTM model: {str(e)}")
+        self.encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
 
     def _build_model(self):
-        """
-        Построение архитектуры модели LSTM.
-        """
         if self.input_shape is None:
             raise ValueError("input_shape must be specified")
 
         logger.info(f"Building LSTM model with {self.units} units and input shape {self.input_shape}")
-        self.model = tf.keras.Sequential([
-            tf.keras.layers.LSTM(units=self.units, return_sequences=True, input_shape=self.input_shape),
-            tf.keras.layers.LSTM(units=self.units),
-            tf.keras.layers.Dense(1)
-        ])
-        self.model.compile(optimizer='adam', loss='mean_squared_error')
-        logger.info("LSTM model built successfully")
+        try:
+            self.model = tf.keras.Sequential([
+                tf.keras.layers.LSTM(units=self.units, return_sequences=True, input_shape=self.input_shape),
+                tf.keras.layers.LSTM(units=self.units),
+                tf.keras.layers.Dense(1)
+            ])
+            self.model.compile(optimizer='adam', loss='mean_squared_error')
+            logger.info("LSTM model built successfully")
+        except Exception as e:
+            logger.error(f"Error building LSTM model: {str(e)}")
+            raise
 
     def fit(self, X: pd.DataFrame, y: pd.Series):
-        """
-        Обучение модели LSTM.
-
-        :param X: DataFrame с признаками для обучения.
-        :param y: Series с целевой переменной.
-        """
         if self.model is None:
             logger.info("LSTM model not initialized. Initializing model.")
-            self.input_shape = (X.shape[1], 1)
+            self._preprocess_data(X)
             self._build_model()
 
         logger.info(f"Fitting LSTM model with {self.epochs} epochs and batch size {self.batch_size}")
         try:
-            X_scaled = self.scaler.fit_transform(X.values)
-            reshaped_X = X_scaled.reshape((X_scaled.shape[0], self.input_shape[0], self.input_shape[1]))
-
-            self.model.fit(reshaped_X, y, epochs=self.epochs, batch_size=self.batch_size, verbose=1)
+            X_processed = self._preprocess_data(X)
+            self.model.fit(X_processed, y, epochs=self.epochs, batch_size=self.batch_size, verbose=1)
             logger.info("LSTM model fitted successfully")
         except Exception as e:
             logger.error(f"Error fitting LSTM model: {str(e)}")
             raise
 
-    def predict(self, X: np.ndarray) -> np.ndarray:
-        """
-        Прогнозирование с использованием обученной модели LSTM.
-
-        :param X: Массив с признаками для прогнозирования.
-        :return: Массив прогнозов.
-        """
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         if self.model is None:
             raise ValueError("Model has not been fitted. Call fit() first.")
 
         logger.info("Making predictions with LSTM model")
         try:
-            X_scaled = self.scaler.transform(X)
-            reshaped_X = X_scaled.reshape((X_scaled.shape[0], self.input_shape[0], self.input_shape[1]))
-            return self.model.predict(reshaped_X, verbose=0).flatten()
+            X_processed = self._preprocess_data(X)
+            return self.model.predict(X_processed, verbose=0).flatten()
         except Exception as e:
             logger.error(f"Error predicting with LSTM model: {str(e)}")
             raise
 
-    def get_params(self) -> dict:
-        """
-        Получение параметров модели.
+    def _preprocess_data(self, X: pd.DataFrame) -> np.ndarray:
+        numeric_features = X.select_dtypes(include=[np.number]).columns
+        categorical_features = X.select_dtypes(include=['object', 'category']).columns
 
-        :return: Словарь с параметрами модели.
-        """
+        X_numeric = self.scaler.fit_transform(X[numeric_features])
+        X_categorical = self.encoder.fit_transform(X[categorical_features])
+
+        X_processed = np.hstack((X_numeric, X_categorical))
+        return X_processed.reshape((X_processed.shape[0], 1, X_processed.shape[1]))
+
+    def get_params(self) -> dict:
         return {
             'units': self.units,
             'input_shape': self.input_shape,
@@ -107,11 +85,6 @@ class LSTMModel:
         }
 
     def set_params(self, **params):
-        """
-        Установка параметров модели.
-
-        :param params: Словарь с новыми параметрами.
-        """
         if 'units' in params:
             self.units = params['units']
         if 'input_shape' in params:
@@ -121,37 +94,26 @@ class LSTMModel:
         if 'batch_size' in params:
             self.batch_size = params['batch_size']
 
-        # Пересоздаем модель с новыми параметрами
-        self._build_model()
-        logger.info("LSTM model parameters updated")
+        if self.input_shape is not None:
+            self._build_model()
+            logger.info("LSTM model parameters updated")
+        else:
+            logger.warning("Cannot build model: input_shape is not set")
 
-    def evaluate(self, X: np.ndarray, y: np.ndarray) -> dict:
-        """
-        Оценка производительности модели на тестовых данных.
-
-        :param X: Массив с признаками для оценки.
-        :param y: Массив с истинными значениями.
-        :return: Словарь с метриками производительности.
-        """
+    def evaluate(self, X: pd.DataFrame, y: np.ndarray) -> dict:
         if self.model is None:
             raise ValueError("Model has not been fitted. Call fit() first.")
 
         logger.info("Evaluating LSTM model performance")
         try:
-            X_scaled = self.scaler.transform(X)
-            reshaped_X = X_scaled.reshape((X_scaled.shape[0], self.input_shape[0], self.input_shape[1]))
-            loss = self.model.evaluate(reshaped_X, y, verbose=0)
+            X_processed = self._preprocess_data(X)
+            loss = self.model.evaluate(X_processed, y, verbose=0)
             return {'loss': loss}
         except Exception as e:
             logger.error(f"Error evaluating LSTM model: {str(e)}")
             raise
 
     def save_model(self, filepath: str):
-        """
-        Сохранение модели в файл.
-
-        :param filepath: Путь для сохранения модели.
-        """
         if self.model is None:
             raise ValueError("Model has not been fitted. Cannot save.")
 
@@ -164,11 +126,6 @@ class LSTMModel:
             raise
 
     def load_model(self, filepath: str):
-        """
-        Загрузка модели из файла.
-
-        :param filepath: Путь к файлу модели.
-        """
         logger.info(f"Loading LSTM model from {filepath}")
         try:
             self.model = tf.keras.models.load_model(filepath)
@@ -176,4 +133,3 @@ class LSTMModel:
         except Exception as e:
             logger.error(f"Error loading LSTM model: {str(e)}")
             raise
-

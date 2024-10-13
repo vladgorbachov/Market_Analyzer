@@ -76,8 +76,8 @@ def process_data(data: Dict[str, Any]) -> pd.DataFrame:
         data_with_indicators = add_all_indicators(harmonized_historical_data)
 
         market_overview_df = pd.DataFrame(data['market_overview'].get('data', []))
-        if 'description' in market_overview_df.columns:
-            data_with_features = add_text_features(data_with_indicators, 'description')
+        if not market_overview_df.empty and 'description' in market_overview_df.columns:
+            data_with_features = add_text_features(data_with_indicators, market_overview_df['description'])
         else:
             data_with_features = data_with_indicators
 
@@ -164,7 +164,7 @@ def main():
         for key, value in backtest_results.items():
             logger.info(f"{key}: {value}")
 
-        latest_data = processed_data.iloc[-1:]
+        latest_data = processed_data.iloc[-1:].copy()
         next_prediction = components['model_selector'].predict(latest_data[feature_columns])
         logger.info(f"\nPredicted price for next period: {next_prediction[0]}")
 
